@@ -1,2 +1,2 @@
-# js
-some practice of javascript
+# javascript
+### some practice of javascript
