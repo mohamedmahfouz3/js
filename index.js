@@ -1,137 +1,128 @@
-const sayHello = (fname, lname) => {
-  let message = "hello";
 
-  const concatmsg = () => {
-    function getFullname() {
-      return ` ${fname} ${lname}`;
+function ArrayChallenge(strArr) {
+    // Map to store child -> parent relationships. Used to check if a child has only one parent.
+    // Key: Child Node ID, Value: Parent Node ID
+    const parents = new Map();
+
+    // Map to store the count of children for each parent. Used to check for a maximum of 2 children.
+    // Key: Parent Node ID, Value: Count of children
+    const childrenCounts = new Map();
+
+    // Set to keep track of all unique nodes encountered in the input.
+    // Used for the final connectivity check.
+    const allNodes = new Set();
+
+    // Map to build an Adjacency List. Used for graph traversal (BFS) to check for cycles and connectivity.
+    // Key: Parent Node ID, Value: Set of Child Node IDs
+    const adjList = new Map();
+
+    // --- Phase 1: Parse Input and Perform Initial Structural Checks ---
+    for (let i = 0; i < strArr.length; i++) {
+        const pairStr = strArr[i];
+        // Extract child and parent IDs from the "(I1,I2)" format using regex.
+        const match = pairStr.match(/\((\d+),(\d+)\)/);
+        if (!match) {
+            // Optional: Add error handling for malformed input strings.
+            // For this challenge, we assume input is always valid format.
+            continue;
+        }
+        const child = parseInt(match[1]);
+        const parent = parseInt(match[2]);
+
+        // Add both child and parent IDs to the set of all unique nodes.
+        allNodes.add(child);
+        allNodes.add(parent);
+
+        // 1. Check for self-loops: A node cannot be its own parent.
+        if (child === parent) {
+            return "false";
+        }
+
+        // 2. Check for multiple parents for a child:
+        // If the child already exists as a key in the 'parents' map, it means it already has a parent assigned.
+        if (parents.has(child)) {
+            return "false"; // This child already has a second parent.
+        }
+        parents.set(child, parent); // Assign the parent to the child.
+
+        // 3. Check for more than two children for a parent:
+        // Increment the child count for the current parent. Use '|| 0' to initialize if not present.
+        childrenCounts.set(parent, (childrenCounts.get(parent) || 0) + 1);
+        if (childrenCounts.get(parent) > 2) {
+            return "false"; // The parent has more than two children.
+        }
+
+        // Build the adjacency list for graph traversal later:
+        // If the parent is not yet in adjList, initialize it with an empty Set.
+        if (!adjList.has(parent)) {
+            adjList.set(parent, new Set());
+        }
+        adjList.get(parent).add(child); // Add the child to the parent's set of children.
+        
+        // Ensure the child node is also present as a key in adjList (even if it has no children itself yet).
+        // This makes sure all nodes are accounted for during BFS traversal.
+        if (!adjList.has(child)) {
+            adjList.set(child, new Set());
+        }
     }
-    return `${message} ${getFullname()}`;
-  };
 
-  let result = concatmsg();
+    // --- Phase 2: Check for Root, Cycles, and Connectedness ---
 
-  return result;
-};
+    // Find potential root candidates:
+    // A root is a node that is not present as a key in the 'parents' map (meaning it has no parent).
+    const rootCandidates = [];
+    for (const node of allNodes) {
+        if (!parents.has(node)) {
+            rootCandidates.push(node);
+        }
+    }
 
-console.log(sayHello("mohamed", "ahmed"));
+    // 4. Check for exactly one root:
+    // A valid tree must have precisely one root node.
+    if (rootCandidates.length !== 1) {
+        return "false"; // No root, or more than one root (not a single tree).
+    }
+    const root = rootCandidates[0]; // The single root of the tree.
 
-////////////////////////////////////////////////////////////////////////@ts-check
+    // 5. Check for cycles and connectedness using Breadth-First Search (BFS):
+    const visited = new Set(); // Set to keep track of visited nodes to detect cycles.
+    const queue = [root]; // Queue for BFS traversal, starting with the root.
+    visited.add(root); // Mark the root as visited.
+    
+    let visitedCount = 0; // Counter for nodes visited during BFS.
 
-var a = 1;
+    while (queue.length > 0) {
+        const currentNode = queue.shift(); // Dequeue the first node for processing (BFS).
+        visitedCount++; // Increment the count of visited nodes.
 
-var x = 2;
+        // Get the children of the current node from the adjacency list.
+        // Use '|| new Set()' to safely handle nodes that have no children in adjList.
+        const childrenOfCurrentNode = adjList.get(currentNode) || new Set(); 
+        for (const childNode of childrenOfCurrentNode) {
+            if (visited.has(childNode)) {
+                // If a child node has already been visited, it indicates a cycle.
+                // In a valid tree, each node should be visited only once via a unique path from the root.
+                return "false";
+            }
+            visited.add(childNode); // Mark the child as visited.
+            queue.push(childNode); // Enqueue the child for future processing.
+        }
+    }
 
-if (true) {
-  let x = 50;
+    // 6. Check for disconnected components:
+    // If the count of nodes visited during BFS (starting from the single root)
+    // is not equal to the total number of unique nodes in the input,
+    // it means there are nodes or parts of the graph not connected to the main tree.
+    if (visitedCount !== allNodes.size) {
+        return "false";
+    }
+
+    // If all checks pass, the relationships form a valid binary tree.
+    return "true";
 }
-console.log(x);
 
-function showtext() {
-  var a = 10;
-
-  let b = 20;
-  console.log(`function- from global ${a}`);
-  console.log(`from global ${b}`);
-}
-showtext(); // function- from global 3
-
-let names = (...name) => `hi [${name.join("],[")}] =>done`;
-
-console.log(names("mohamed", "ahmed", "ebrhim", "mahfouz"));
-
-let myNumbers = [20, 50, 10, 60];
-let calc = (one, two, ...nums) => one + two + nums[0] + nums[1];
-
-console.log(calc(10, myNumbers[0], myNumbers[1], myNumbers[3]));
-
-let myNums = [1, 2, 3, 4, 5, 6];
-
-let newArray = [];
-
-for (i = 0; i < myNums.length; i++) {
-  newArray.push(myNums[i] + myNums[i]);
-}
-
-console.log(newArray);
-
-/// same idea
-
-let array = myNums.map(function (ele, index, arr) {
-  // console.log(`current element => ${ele}`);
-  // console.log(`current index => ${index}`);
-  // console.log(`current arr => ${arr}`);
-  // console.log(`this=> ${this}`);
-
-  return ele + ele;
-});
-console.log(array);
-
-let swappingCases = "elZERo";
-let invertedNums = [1, -10, -20, 15, 100, -30];
-let ignoreNumbers = "Elz123er4o";
-
-let sw = swappingCases
-  .split("")
-  .map(function (ele) {
-    return ele === ele.toUpperCase() ? ele.toLowerCase : ele.toUpperCase();
-  })
-  .join("");
-
-console.log(sw);
-
-let inv = invertedNums.map(function (ele) {
-  return -ele;
-});
-
-console.log(inv);
-
-let ig = ignoreNumbers
-  .split("")
-  .map(function (ele) {
-    return isNaN(parseInt(ele)) ? ele : "";
-  })
-  .join("");
-
-console.log(ig);
-
-/////////////////filter////////////////////
-
-let friends = ["mohamed", "ahmed", "ebrahim", "mahfouz"];
-let filterFriend = friends.filter(function (ele) {
-  return ele.startsWith("a");
-});
-
-console.log(filterFriend);
-
-let myNum = [11, 2, 20, 17, 5, 10];
-function filterNumber(ele) {
-  return ele % 2 === 0;
-}
-let numbersFIlt = myNums.filter(filterNumber);
-//do something with the filtered elements her
-console.log(numbersFIlt);
-
-let sentence = "I love foood code too plating much";
-
-let smallWord = sentence
-  .split(" ")
-  .filter(function (ele) {
-    return ele.length <= 4;
-  })
-  .join(" ");
-
-console.log(smallWord);
-
-let mix = "A13BS2ZX";
-
-let ma = mix
-  .split("")
-  .filter(function (ele) {
-    return !isNaN(parseInt(ele));
-  })
-  .map(function (el) {
-    return (el = el * el);
-  })
-  .join("");
-
-console.log(ma);
+// --- Test Cases ---
+// Example 1: Valid tree structure from problem description.
+console.log(`Test 1: ${ArrayChallenge(["(1,2)", "(2,4)", "(5,7)", "(7,2)", "(9,5)"])}, Expected: true`);
+// Example 2: Invalid tree structure (from problem description).
+console.log(`Test 2: ${ArrayChallenge(["(1,2)", "(3,2)", "(2,12)", "(5,2)"])}, Expected: false`);
